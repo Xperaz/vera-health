@@ -1,5 +1,6 @@
-export const STREAM_API_URL =
-  "https://vera-assignment-api.vercel.app/api/stream?prompt=";
+import { API_URL } from "@env";
+
+export const STREAM_API_URL = API_URL;
 
 export const DEFAULT_SECTION_TITLE = "Response";
 
