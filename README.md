@@ -1,8 +1,11 @@
-# Welcome to your Expo app 👋
+# Vera Health👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started
+
+> [!NOTE]  
+> Please make sure to create a `.env` file in the root directory and add API URL.
 
 1. Install dependencies
 
