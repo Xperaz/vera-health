@@ -6,6 +6,7 @@ import EventSource, {
 
 import { STREAM_API_URL } from "../utils/constants";
 
+// The stream can emit different JSON shapes, so I expose raw payloads as `unknown`
 type SSEHandlers = {
   onChunk: (chunk: string, payload: unknown) => void;
   onError?: (error: unknown) => void;
@@ -110,66 +111,80 @@ export function useSSEStream({
   }, [prompt, enabled, requestId]);
 }
 
-function extractChunk(payload: any): string | null {
-  if (payload == null) {
-    return null;
-  }
-
+function extractChunk(payload: unknown): string | null {
   if (typeof payload === "string") {
     return payload;
   }
 
-  if (typeof payload.content === "string") {
-    return payload.content;
+  if (!isRecord(payload)) {
+    return null;
   }
 
-  if (payload.content?.content && typeof payload.content.content === "string") {
-    return payload.content.content;
+  const content = payload.content;
+  const delta = payload.delta;
+
+  if (typeof content === "string") {
+    return content;
   }
 
-  if (Array.isArray(payload.content)) {
-    return payload.content.join("");
+  if (isStringArray(content)) {
+    return content.join("");
   }
 
-  if (typeof payload.delta === "string") {
-    return payload.delta;
+  if (isRecord(content) && typeof content.content === "string") {
+    return content.content;
+  }
+
+  if (typeof delta === "string") {
+    return delta;
   }
 
   return null;
 }
 
-function isDonePayload(payload: any) {
-  if (payload == null) {
+function isDonePayload(payload: unknown): boolean {
+  if (!isRecord(payload) || typeof payload.type !== "string") {
     return false;
   }
 
-  const type =
-    typeof payload.type === "string" ? payload.type.toLowerCase() : "";
+  const type = payload.type.toLowerCase();
   return type === "done" || type === "completed";
 }
 
-function isErrorPayload(payload: any) {
-  if (payload == null) {
+function isErrorPayload(payload: unknown): boolean {
+  if (!isRecord(payload) || typeof payload.type !== "string") {
     return false;
   }
 
-  const type =
-    typeof payload.type === "string" ? payload.type.toLowerCase() : "";
+  const type = payload.type.toLowerCase();
   return type === "error" || type === "errorchunk";
 }
 
-function isSearchStepsComplete(payload: any) {
-  if (payload == null || payload.type !== "NodeChunk") {
+function isSearchStepsComplete(payload: unknown): boolean {
+  if (!isRecord(payload) || payload.type !== "NodeChunk") {
     return false;
   }
 
   const content = payload.content;
-  if (
-    content?.nodeName !== "SEARCH_STEPS" ||
-    !Array.isArray(content?.content)
-  ) {
+  if (!isRecord(content) || content.nodeName !== "SEARCH_STEPS") {
     return false;
   }
 
-  return content.content.every((step: any) => step?.isCompleted === true);
+  if (!Array.isArray(content.content)) {
+    return false;
+  }
+
+  return content.content.every(
+    (step) => isRecord(step) && step.isCompleted === true
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

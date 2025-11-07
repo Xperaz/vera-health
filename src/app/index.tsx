@@ -149,6 +149,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#f1f5f9",
+    top: 10,
   },
   container: {
     flex: 1,
